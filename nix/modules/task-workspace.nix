@@ -16,6 +16,7 @@
     "d /home/daviziks/dev/.task-templates 0755 daviziks users -"
     "d /home/daviziks/dev/.services 0755 daviziks users -"
     "d /home/daviziks/dev/.services/executor 0700 daviziks users -"
+    "d /home/daviziks/dev/.devel 0755 daviziks users -"
   ];
 
   environment.variables = {
@@ -26,6 +27,6 @@
   };
 
   environment.systemPackages = [
-    (pkgs.writeShellScriptBin "shadow-task" (builtins.readFile ../../scripts/shadow-task))
+    (pkgs.writeShellScriptBin "devel" (builtins.readFile ../../scripts/devel))
   ];
 }

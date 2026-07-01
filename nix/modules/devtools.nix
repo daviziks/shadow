@@ -48,6 +48,7 @@
     pkgs.just
     pkgs.nixfmt
     pkgs.podman-compose
+    pkgs.pi-coding-agent
     pkgs.ripgrep
     pkgs.starship
     pkgs.yq
