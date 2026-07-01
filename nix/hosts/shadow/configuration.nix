@@ -13,6 +13,7 @@
     ../../modules/devtools.nix
     ../../modules/services.nix
     ../../modules/task-workspace.nix
+    ../../modules/work-browser.nix
   ];
 
   networking.hostName = "shadow";
