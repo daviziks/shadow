@@ -44,4 +44,50 @@ in
     pkgs.xvfb
     pkgs.xwininfo
   ];
+
+  systemd.services.agent-workspace-linux-mcp = {
+    description = "Agent Workspace Linux MCP Streamable HTTP bridge";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    environment = {
+      HOME = "/home/daviziks";
+      npm_config_cache = "/home/daviziks/dev/.cache/pkg/npm";
+    };
+    path = [
+      pkgs.coreutils
+      pkgs.bash
+      pkgs.chromium
+      pkgs.openbox
+      pkgs.xvfb
+      pkgs.xauth
+      pkgs.xdpyinfo
+      pkgs.xdotool
+      pkgs.xprop
+      pkgs.xclip
+      pkgs.imagemagick
+      pkgs.nodejs_24
+      agentWorkspaceLinux
+    ];
+    serviceConfig = {
+      User = "daviziks";
+      Group = "users";
+      WorkingDirectory = "/home/daviziks/dev";
+      Restart = "always";
+      RestartSec = "5s";
+      ExecStart = pkgs.writeShellScript "agent-workspace-linux-mcp-start" ''
+        ${pkgs.nodejs_24}/bin/npx -y supergateway@3.4.3 \
+          --stdio "${agentWorkspaceLinux}/bin/agent-workspace-linux mcp --headless" \
+          --outputTransport streamableHttp \
+          --streamableHttpPath /mcp \
+          --port 4789 \
+          --baseUrl http://10.88.0.1:4789 \
+          --healthEndpoint /healthz \
+          --logLevel info
+      '';
+    };
+    unitConfig.StartLimitIntervalSec = 0;
+  };
+
+  networking.firewall.interfaces."podman0".allowedTCPPorts = [ 4789 ];
 }
