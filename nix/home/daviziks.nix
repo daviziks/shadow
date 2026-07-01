@@ -29,9 +29,11 @@
   programs.git = {
     enable = true;
     settings = {
-      user.name = "Davi Oliveira";
+      user.name = "davi oliveira";
+      user.email = "davioliveira.java@gmail.com";
       init.defaultBranch = "main";
       pull.rebase = true;
+      push.autoSetupRemote = true;
       rerere.enabled = true;
     };
   };
