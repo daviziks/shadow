@@ -14,7 +14,7 @@
   users.users.coder.extraGroups = [ "podman" ];
 
   systemd.tmpfiles.rules = [
-    "d /home/daviziks/dev/.services/coder 0750 coder coder -"
+    "d /home/daviziks/dev/.services/coder 0755 daviziks users -"
     "d /home/daviziks/dev/.services/coder/home 0750 coder coder -"
     "d /home/daviziks/dev/.services/coder/templates 0755 daviziks users -"
   ];
