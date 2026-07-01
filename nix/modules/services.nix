@@ -55,4 +55,6 @@
       7080
     ];
   };
+
+  networking.firewall.interfaces."podman0".allowedTCPPorts = [ 7080 ];
 }
