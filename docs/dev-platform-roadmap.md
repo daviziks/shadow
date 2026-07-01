@@ -8,7 +8,7 @@ task-first development server.
 - NixOS owns the base system, disks, services, firewall, and rollback path.
 - Coder owns long-lived development workspaces and VS Code/SSH entrypoints.
 - `devel` remains the human-facing task CLI and can wrap Coder over time.
-- Kasm owns the persistent work browser for corporate accounts and meetings.
+- Herdr owns persistent terminal sessions and agent panes over SSH.
 - `agent-workspace-linux` owns isolated GUI/browser automation for AI agents.
 - Podman/Docker Compose service profiles own per-task dependencies.
 - Tailscale and Caddy expose services only to the tailnet.
@@ -20,8 +20,8 @@ task-first development server.
 3. #3 Install and expose Coder for dev workspaces
 4. #4 Create fullstack Coder workspace template
 5. #5 DevL/devel v2 task CLI
-6. #6 Kasm work browser with persistent corporate profile
-7. #7 Per-task debug browser and app routing
+6. #7 Per-task debug browser and app routing
+7. Herdr terminal/session multiplexer
 8. #8 Agent workspace Linux integration
 9. #9 Service profile library for task dependencies
 
@@ -45,12 +45,11 @@ Evolve `devel` into the workflow command for Linear-driven tasks. It should
 eventually create workspaces, record task metadata, open useful URLs, start
 service profiles, and help with PR/status updates.
 
-### Phase 4: Browser surfaces
+### Phase 4: Terminal and Browser Surfaces
 
-Add the persistent work browser separately from per-task debug browsers. The
-work browser must optimize for stable corporate logins and meeting media. The
-task browser must optimize for reaching task-local services without port
-collisions.
+Use Herdr for persistent SSH terminal sessions and agent panes. Per-task debug
+browser support should stay scoped to workspaces and agent automation rather
+than a persistent corporate browser on Shadow.
 
 ### Phase 5: Agent workspace
 
@@ -72,5 +71,5 @@ checks work.
 
 - Do not replace `devel` with Coder in one step.
 - Do not expose any new service outside Tailscale.
-- Do not store corporate browser credentials in disposable task workspaces.
+- Do not store corporate browser credentials on Shadow.
 - Do not give AI agent workspaces broad host mounts by default.

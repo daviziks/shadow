@@ -11,9 +11,9 @@
     ../../modules/backup-storage.nix
     ../../modules/coder.nix
     ../../modules/devtools.nix
+    ../../modules/herdr.nix
     ../../modules/services.nix
     ../../modules/task-workspace.nix
-    ../../modules/work-browser.nix
   ];
 
   networking.hostName = "shadow";
@@ -32,8 +32,6 @@
   boot.kernelModules = [ "kvm-amd" ];
   hardware.cpu.amd.updateMicrocode = true;
   hardware.enableRedistributableFirmware = true;
-  hardware.graphics.enable = true;
-
   services.hardware.openrgb.enable = false;
 
   system.stateVersion = "26.05";

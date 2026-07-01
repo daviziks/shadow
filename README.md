@@ -38,15 +38,8 @@ devel prune
 
 See `docs/task-workflow.md` for details.
 
-## Desktop rollback
+## Headless profile
 
-The `shadow` host is intentionally headless. If a local KDE/Sunshine workstation
-session is needed again, temporarily add this import back to
-`nix/hosts/shadow/configuration.nix`:
-
-```nix
-../../modules/desktop-kde.nix
-```
-
-Sunshine, printing, and Avahi are also intentionally absent from the headless
-service profile.
+The `shadow` host is intentionally headless. KDE, Sunshine, local GUI apps,
+printing, Avahi, and persistent browser containers are not part of the server
+profile.
