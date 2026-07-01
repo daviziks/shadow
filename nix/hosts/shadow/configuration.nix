@@ -8,7 +8,6 @@
 {
   imports = [
     ../../modules/base.nix
-    ../../modules/desktop-kde.nix
     ../../modules/devtools.nix
     ../../modules/services.nix
     ../../modules/task-workspace.nix
