@@ -30,7 +30,11 @@
       auto_https off
     '';
     virtualHosts."http://shadow".extraConfig = ''
-      reverse_proxy 127.0.0.1:4788
+      redir /shadow/executor /shadow/executor/
+      handle_path /shadow/executor/* {
+        reverse_proxy 127.0.0.1:4788
+      }
+      respond "shadow service gateway"
     '';
   };
 
@@ -41,7 +45,7 @@
     ports = [ "127.0.0.1:4788:4788" ];
     volumes = [ "/home/daviziks/dev/.services/executor:/data" ];
     environment = {
-      EXECUTOR_WEB_BASE_URL = "http://shadow";
+      EXECUTOR_WEB_BASE_URL = "http://shadow/shadow/executor";
       EXECUTOR_ALLOW_LOCAL_NETWORK = "false";
     };
   };
