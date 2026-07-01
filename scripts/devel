@@ -7,7 +7,6 @@ PKG_CACHE_ROOT=${SHADOW_PKG_CACHE:-$DEV_ROOT/.cache/pkg}
 STORE_FILE=${SHADOW_REPO_STORE:-$DEV_ROOT/.devel/repos.tsv}
 TASK_META=.devel
 PROFILE_ROOT=${SHADOW_SERVICE_PROFILE_ROOT:-/etc/shadow-dev/service-profiles}
-CODER_TOKEN_FILE=${SHADOW_CODER_TOKEN_FILE:-$DEV_ROOT/.services/coder/admin-session-token}
 
 usage() {
   cat <<'USAGE'
@@ -16,7 +15,6 @@ Usage: devel <command> [args]
 Workflow:
   devel store add owner/repo [owner/repo...]
   devel create <task-slug>
-  devel coder create <workspace> [--profile profile] [owner/repo[@base][=work]...]
   cd $(devel path <task-slug>)
   devel enter <task-slug>
 
@@ -41,8 +39,6 @@ Commands:
       Refresh shared bare git caches. Defaults to all stored repos.
   profile [list|show|copy] [profile] [task]
       Inspect or copy service profile compose files.
-  coder create <workspace> [--profile profile] [owner/repo[@base][=work]...]
-      Create a Coder workspace from the fullstack-task template.
 
 Repo spec format:
   owner/repo              clone the repo default branch
@@ -451,54 +447,6 @@ cmd_profile() {
   esac
 }
 
-coder_env() {
-  export CODER_URL=${CODER_URL:-http://127.0.0.1:7080}
-  if [ -z "${CODER_SESSION_TOKEN:-}" ] && [ -r "$CODER_TOKEN_FILE" ]; then
-    CODER_SESSION_TOKEN=$(cat "$CODER_TOKEN_FILE")
-    export CODER_SESSION_TOKEN
-  fi
-}
-
-cmd_coder() {
-  sub=${1:-}
-  case "$sub" in
-    create|new)
-      shift
-      [ $# -ge 1 ] || fail "coder create requires a workspace name"
-      workspace=$1; shift
-      profile=none
-      repos=
-      while [ $# -gt 0 ]; do
-        case "$1" in
-          --profile)
-            shift
-            [ $# -gt 0 ] || fail "--profile requires a value"
-            profile=$1
-            ;;
-          --profile=*) profile=${1#--profile=} ;;
-          *) repos="${repos}${repos:+ }$1" ;;
-        esac
-        shift
-      done
-      coder_env
-      need coder
-      exec coder create "$workspace" \
-        --template fullstack-task \
-        --parameter "repo_specs=$repos" \
-        --parameter "service_profile=$profile" \
-        --yes
-      ;;
-    open|url)
-      shift
-      coder_env
-      need coder
-      [ $# -eq 1 ] || fail "coder open requires a workspace name"
-      coder show "$1" | sed -n '1,120p'
-      ;;
-    *) fail "unknown coder command: ${sub:-}" ;;
-  esac
-}
-
 cmd=${1:-}
 case "$cmd" in
   store) shift; cmd_store "$@" ;;
@@ -511,7 +459,6 @@ case "$cmd" in
   prune) shift; [ $# -eq 0 ] || fail "prune takes no args"; cmd_prune ;;
   cache) shift; cmd_cache "$@" ;;
   profile|profiles) shift; cmd_profile "$@" ;;
-  coder) shift; cmd_coder "$@" ;;
   __podman|__docker) shift; cmd_podman "$@" ;;
   -h|--help|help|'') usage ;;
   *) usage >&2; exit 2 ;;

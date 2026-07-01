@@ -10,7 +10,6 @@
     ../../modules/base.nix
     ../../modules/backup-storage.nix
     ../../modules/agent-workspace-linux.nix
-    ../../modules/coder.nix
     ../../modules/codex.nix
     ../../modules/devtools.nix
     ../../modules/herdr.nix
