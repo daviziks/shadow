@@ -35,6 +35,14 @@
     };
   };
 
+  systemd.services.podman-executor-selfhost = {
+    serviceConfig = {
+      Restart = lib.mkForce "always";
+      RestartSec = "5s";
+    };
+    unitConfig.StartLimitIntervalSec = 0;
+  };
+
   # User-facing services are reachable only through Tailscale.
   networking.firewall.interfaces."tailscale0" = {
     allowedTCPPorts = [
