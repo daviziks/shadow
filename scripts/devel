@@ -426,7 +426,7 @@ cmd_profile() {
   case "$sub" in
     list|ls)
       [ -d "$PROFILE_ROOT" ] || fail "service profile root not found: $PROFILE_ROOT"
-      find "$PROFILE_ROOT" -maxdepth 1 -type f -name '*.compose.yaml' -exec basename {} .compose.yaml \; | sort
+      find "$PROFILE_ROOT" -maxdepth 1 \( -type f -o -type l \) -name '*.compose.yaml' -exec basename {} .compose.yaml \; | sort
       ;;
     show|cat)
       shift
