@@ -6,7 +6,7 @@ CACHE_ROOT=${SHADOW_GIT_CACHE:-$DEV_ROOT/.cache/git}
 PKG_CACHE_ROOT=${SHADOW_PKG_CACHE:-$DEV_ROOT/.cache/pkg}
 STORE_FILE=${SHADOW_REPO_STORE:-$DEV_ROOT/.devel/repos.tsv}
 TASK_META=.devel
-PROFILE_ROOT=${SHADOW_SERVICE_PROFILE_ROOT:-/etc/shadow/service-profiles}
+PROFILE_ROOT=${SHADOW_SERVICE_PROFILE_ROOT:-/etc/shadow-dev/service-profiles}
 CODER_TOKEN_FILE=${SHADOW_CODER_TOKEN_FILE:-$DEV_ROOT/.services/coder/admin-session-token}
 
 usage() {

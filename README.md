@@ -35,7 +35,7 @@ Create a Coder workspace for remote VS Code workflows:
 devel coder create fixing-mfe-auth-issue --profile sqlserver-minio-centrifugo sigla/sigla-web@develop=fix-auth
 ```
 
-Service profiles are available from `/etc/shadow/service-profiles`:
+Service profiles are available from `/etc/shadow-dev/service-profiles`:
 
 ```sh
 devel profile list

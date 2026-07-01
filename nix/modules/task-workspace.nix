@@ -21,15 +21,15 @@
 
   environment.variables = {
     SHADOW_DEV_ROOT = "/home/daviziks/dev";
-    SHADOW_SERVICE_PROFILE_ROOT = "/etc/shadow/service-profiles";
+    SHADOW_SERVICE_PROFILE_ROOT = "/etc/shadow-dev/service-profiles";
     BUN_INSTALL_CACHE_DIR = "/home/daviziks/dev/.cache/pkg/bun";
     npm_config_cache = "/home/daviziks/dev/.cache/pkg/npm";
     COREPACK_HOME = "/home/daviziks/dev/.cache/pkg/corepack";
   };
 
-  environment.etc."shadow/service-profiles/node-web.compose.yaml".source =
+  environment.etc."shadow-dev/service-profiles/node-web.compose.yaml".source =
     ../../service-profiles/node-web.compose.yaml;
-  environment.etc."shadow/service-profiles/sqlserver-minio-centrifugo.compose.yaml".source =
+  environment.etc."shadow-dev/service-profiles/sqlserver-minio-centrifugo.compose.yaml".source =
     ../../service-profiles/sqlserver-minio-centrifugo.compose.yaml;
 
   environment.systemPackages = [
