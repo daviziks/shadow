@@ -1,0 +1,354 @@
+#!/bin/sh
+set -eu
+
+ROOT=${SHADOW_WS_ROOT:-/home/daviziks/dev/workspaces}
+IMAGE=${SHADOW_WS_IMAGE:-localhost/shadow-workspace:latest}
+BASE_PORT=${SHADOW_WS_BASE_PORT:-22200}
+HOST_ALIAS=${SHADOW_WS_HOST_ALIAS:-shadow}
+HOST_CODEX_HOME=${SHADOW_WS_CODEX_HOME:-/home/daviziks/.codex}
+PODMAN_SOCK=${SHADOW_WS_PODMAN_SOCK:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock}
+
+usage() {
+  cat <<'USAGE'
+Usage: shadow-ws <command> [args]
+
+Commands:
+  create <name> [--repo owner/repo[@base][=work]]... [--profile name] [--port n]
+      Create and start an isolated SSH workspace container.
+  list
+      List workspace containers.
+  status <name>
+      Show one workspace status.
+  ssh-config [name]
+      Print concrete SSH aliases for Codex App.
+  enter <name>
+      SSH into the workspace from Shadow.
+  stop <name>
+      Stop the workspace container.
+  start <name>
+      Start an existing workspace container.
+  destroy <name>
+      Remove the container and workspace files.
+  build-image
+      Build the base workspace image.
+
+Repo spec format:
+  owner/repo              clone the repo default branch
+  owner/repo@develop      clone from develop
+  owner/repo@main=fix-x   clone from main, then create/switch local branch fix-x
+USAGE
+}
+
+fail() { printf '%s\n' "$*" >&2; exit 1; }
+warn() { printf 'warning: %s\n' "$*" >&2; }
+need() { command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"; }
+
+slug_ok() {
+  case "$1" in
+    ''|.*|*/*|*' '*|*[^A-Za-z0-9._-]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+ws_dir() {
+  slug_ok "$1" || fail "invalid workspace name: $1"
+  printf '%s/%s\n' "$ROOT" "$1"
+}
+
+container_name() {
+  printf 'shadow-ws-%s\n' "$1"
+}
+
+ensure_root() {
+  mkdir -p "$ROOT"
+}
+
+image_exists() {
+  podman image exists "$IMAGE" >/dev/null 2>&1
+}
+
+write_containerfile() {
+  dir=$1
+  cat >"$dir/Containerfile" <<'CONTAINERFILE'
+FROM docker.io/library/ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    bash ca-certificates curl docker.io docker-compose-v2 fd-find fish fzf git \
+    jq openssh-server ripgrep sudo tini vim-tiny \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --shell /bin/bash coder \
+  && usermod -aG sudo,docker coder \
+  && printf 'coder ALL=(ALL) NOPASSWD:ALL\n' >/etc/sudoers.d/coder \
+  && chmod 0440 /etc/sudoers.d/coder \
+  && mkdir -p /run/sshd /workspace \
+  && chown coder:coder /workspace
+
+EXPOSE 22
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["/usr/sbin/sshd", "-D", "-e"]
+CONTAINERFILE
+}
+
+cmd_build_image() {
+  need podman
+  tmp=$(mktemp -d)
+  write_containerfile "$tmp"
+  podman build -t "$IMAGE" "$tmp"
+  rm -rf "$tmp"
+}
+
+repo_from_spec() {
+  spec=$1
+  spec=${spec%%=*}
+  spec=${spec%%@*}
+  printf '%s\n' "$spec"
+}
+
+repo_name() {
+  repo=$(repo_from_spec "$1")
+  printf '%s\n' "${repo##*/}"
+}
+
+repo_clone_url() {
+  printf 'https://github.com/%s.git\n' "$1"
+}
+
+repo_default_branch() {
+  if command -v gh >/dev/null 2>&1; then
+    gh repo view "$1" --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null && return 0
+  fi
+  printf '%s\n' main
+}
+
+clone_repo() {
+  spec=$1
+  dest_root=$2
+  work_branch=
+  base_branch=
+  repo_part=$spec
+  case "$repo_part" in *=*) work_branch=${repo_part#*=}; repo_part=${repo_part%%=*} ;; esac
+  case "$repo_part" in *@*) base_branch=${repo_part#*@}; repo=${repo_part%@*} ;; *) repo=$repo_part ;; esac
+  case "$repo" in */*) : ;; *) fail "repo must be owner/name: $repo" ;; esac
+  [ -n "$base_branch" ] || base_branch=$(repo_default_branch "$repo")
+  name=$(repo_name "$repo")
+  dst="$dest_root/$name"
+  [ ! -e "$dst" ] || fail "destination already exists: $dst"
+  git clone --branch "$base_branch" "$(repo_clone_url "$repo")" "$dst"
+  if [ -n "$work_branch" ] && [ "$work_branch" != "$base_branch" ]; then
+    git -C "$dst" switch -c "$work_branch"
+  fi
+}
+
+next_port() {
+  ensure_root
+  port=$BASE_PORT
+  while :; do
+    if ! grep -R "^port=$port$" "$ROOT"/*/meta.env >/dev/null 2>&1; then
+      if ! ss -lnt 2>/dev/null | grep -q ":$port "; then
+        printf '%s\n' "$port"
+        return 0
+      fi
+    fi
+    port=$((port + 1))
+  done
+}
+
+copy_authorized_keys() {
+  dst=$1
+  mkdir -p "$(dirname "$dst")"
+  if [ -n "${SHADOW_WS_AUTHORIZED_KEYS:-}" ]; then
+    src=$SHADOW_WS_AUTHORIZED_KEYS
+  elif [ -r "$HOME/.ssh/authorized_keys" ]; then
+    src=$HOME/.ssh/authorized_keys
+  elif [ -r "/etc/ssh/authorized_keys.d/$(id -un)" ]; then
+    src=/etc/ssh/authorized_keys.d/$(id -un)
+  else
+    src=
+  fi
+  if [ -n "$src" ]; then
+    cp "$src" "$dst"
+  else
+    : >"$dst"
+    warn "no authorized_keys found; add your Windows public key to $dst before SSHing into this workspace"
+  fi
+  chmod 0644 "$dst"
+}
+
+run_container() {
+  slug=$1
+  dir=$(ws_dir "$slug")
+  port=$(awk -F= '$1 == "port" { print $2 }' "$dir/meta.env")
+  name=$(container_name "$slug")
+  podman rm -f "$name" >/dev/null 2>&1 || true
+  podman run -d \
+    --name "$name" \
+    --hostname "$slug" \
+    --add-host shadow:10.88.0.1 \
+    -p "127.0.0.1:$port:22" \
+    -e PATH="/host-sw/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+    -e DOCKER_HOST="unix:///var/run/docker.sock" \
+    -e SHADOW_WORKSPACE="$slug" \
+    -e COMPOSE_PROJECT_NAME="shadowws_${slug}" \
+    -v "$dir/home:/home/coder:Z" \
+    -v "$dir/repos:/workspace:Z" \
+    -v "$dir/ssh:/workspace-ssh:ro,Z" \
+    -v "/nix/store:/nix/store:ro" \
+    -v "/run/current-system/sw:/host-sw:ro" \
+    -v "$HOST_CODEX_HOME:/host-codex:ro,Z" \
+    -v "$PODMAN_SOCK:/var/run/docker.sock" \
+    "$IMAGE" \
+    sh -lc 'set -eu
+      mkdir -p /run/sshd /home/coder/.ssh /home/coder/.codex
+      printf "%s\n" "export PATH=/host-sw/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" "export DOCKER_HOST=unix:///var/run/docker.sock" >/etc/profile.d/host-sw.sh
+      cp /workspace-ssh/authorized_keys /home/coder/.ssh/authorized_keys
+      if [ -f /host-codex/auth.json ] && [ ! -f /home/coder/.codex/auth.json ]; then cp /host-codex/auth.json /home/coder/.codex/auth.json; fi
+      if [ -f /host-codex/config.toml ] && [ ! -f /home/coder/.codex/config.toml ]; then cp /host-codex/config.toml /home/coder/.codex/config.toml; fi
+      chown -R coder:coder /home/coder /workspace
+      chmod 700 /home/coder/.ssh /home/coder/.codex
+      chmod 600 /home/coder/.ssh/authorized_keys 2>/dev/null || true
+      exec /usr/sbin/sshd -D -e
+    ' >/dev/null
+}
+
+print_ssh_config() {
+  slug=$1
+  dir=$(ws_dir "$slug")
+  [ -f "$dir/meta.env" ] || fail "workspace does not exist: $slug"
+  port=$(awk -F= '$1 == "port" { print $2 }' "$dir/meta.env")
+  cat <<CONFIG
+Host shadow-$slug
+  HostName 127.0.0.1
+  User coder
+  Port $port
+  ProxyJump $HOST_ALIAS
+  StrictHostKeyChecking accept-new
+  UserKnownHostsFile ~/.ssh/known_hosts
+
+CONFIG
+}
+
+cmd_create() {
+  [ $# -ge 1 ] || fail "create requires a workspace name"
+  slug=$1; shift
+  slug_ok "$slug" || fail "invalid workspace name: $slug"
+  profile=none
+  port=
+  repos=
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --repo)
+        shift; [ $# -gt 0 ] || fail "--repo requires a value"
+        repos="${repos}${repos:+ }$1"
+        ;;
+      --repo=*) repos="${repos}${repos:+ }${1#--repo=}" ;;
+      --profile)
+        shift; [ $# -gt 0 ] || fail "--profile requires a value"
+        profile=$1
+        ;;
+      --profile=*) profile=${1#--profile=} ;;
+      --port)
+        shift; [ $# -gt 0 ] || fail "--port requires a value"
+        port=$1
+        ;;
+      --port=*) port=${1#--port=} ;;
+      *) repos="${repos}${repos:+ }$1" ;;
+    esac
+    shift
+  done
+  ensure_root
+  dir=$(ws_dir "$slug")
+  [ ! -e "$dir" ] || fail "workspace already exists: $slug"
+  image_exists || cmd_build_image
+  port=${port:-$(next_port)}
+  mkdir -p "$dir/home" "$dir/repos" "$dir/ssh"
+  copy_authorized_keys "$dir/ssh/authorized_keys"
+  {
+    printf 'name=%s\n' "$slug"
+    printf 'port=%s\n' "$port"
+    printf 'profile=%s\n' "$profile"
+    printf 'repos=%s\n' "$repos"
+  } >"$dir/meta.env"
+  for spec in $repos; do clone_repo "$spec" "$dir/repos"; done
+  run_container "$slug"
+  print_ssh_config "$slug"
+}
+
+cmd_list() {
+  ensure_root
+  for meta in "$ROOT"/*/meta.env; do
+    [ -f "$meta" ] || continue
+    slug=$(awk -F= '$1 == "name" { print $2 }' "$meta")
+    port=$(awk -F= '$1 == "port" { print $2 }' "$meta")
+    status=$(podman inspect -f '{{.State.Status}}' "$(container_name "$slug")" 2>/dev/null || printf absent)
+    printf '%s\t%s\t%s\n' "$slug" "$port" "$status"
+  done | sort
+}
+
+cmd_status() {
+  [ $# -eq 1 ] || fail "status requires a workspace name"
+  dir=$(ws_dir "$1")
+  [ -f "$dir/meta.env" ] || fail "workspace does not exist: $1"
+  cat "$dir/meta.env"
+  podman ps -a --filter "name=$(container_name "$1")"
+}
+
+cmd_ssh_config() {
+  if [ $# -eq 0 ]; then
+    ensure_root
+    for meta in "$ROOT"/*/meta.env; do
+      [ -f "$meta" ] || continue
+      slug=$(awk -F= '$1 == "name" { print $2 }' "$meta")
+      print_ssh_config "$slug"
+    done
+  else
+    print_ssh_config "$1"
+  fi
+}
+
+cmd_enter() {
+  [ $# -eq 1 ] || fail "enter requires a workspace name"
+  dir=$(ws_dir "$1")
+  [ -f "$dir/meta.env" ] || fail "workspace does not exist: $1"
+  port=$(awk -F= '$1 == "port" { print $2 }' "$dir/meta.env")
+  exec ssh -p "$port" coder@127.0.0.1
+}
+
+cmd_stop() {
+  [ $# -eq 1 ] || fail "stop requires a workspace name"
+  podman stop "$(container_name "$1")"
+}
+
+cmd_start() {
+  [ $# -eq 1 ] || fail "start requires a workspace name"
+  if podman container exists "$(container_name "$1")"; then
+    podman start "$(container_name "$1")"
+  else
+    run_container "$1"
+  fi
+}
+
+cmd_destroy() {
+  [ $# -eq 1 ] || fail "destroy requires a workspace name"
+  dir=$(ws_dir "$1")
+  case "$dir" in "$ROOT"/*) : ;; *) fail "refusing to delete outside workspace root: $dir" ;; esac
+  podman rm -f "$(container_name "$1")" >/dev/null 2>&1 || true
+  podman unshare rm -rf "$dir"
+}
+
+cmd=${1:-}
+case "$cmd" in
+  create|new) shift; cmd_create "$@" ;;
+  list|ls) shift; cmd_list "$@" ;;
+  status) shift; cmd_status "$@" ;;
+  ssh-config) shift; cmd_ssh_config "$@" ;;
+  enter|ssh) shift; cmd_enter "$@" ;;
+  stop) shift; cmd_stop "$@" ;;
+  start) shift; cmd_start "$@" ;;
+  destroy|rm|delete) shift; cmd_destroy "$@" ;;
+  build-image) shift; [ $# -eq 0 ] || fail "build-image takes no args"; cmd_build_image ;;
+  -h|--help|help|'') usage ;;
+  *) usage >&2; exit 2 ;;
+esac

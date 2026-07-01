@@ -14,6 +14,7 @@
     ../../modules/devtools.nix
     ../../modules/herdr.nix
     ../../modules/services.nix
+    ../../modules/shadow-ws.nix
     ../../modules/task-workspace.nix
   ];
 
