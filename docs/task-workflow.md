@@ -78,7 +78,7 @@ Inside the task shell, `podman` and `docker` are task-local wrappers. You do not
 
 ## 5. Service profiles
 
-Profiles live in `/etc/shadow/service-profiles`.
+Profiles live in `/etc/shadow-dev/service-profiles`.
 
 ```sh
 devel profile list
