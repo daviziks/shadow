@@ -1,6 +1,6 @@
 # shadow
 
-Declarative NixOS configuration for the `shadow` workstation.
+Declarative NixOS configuration for the `shadow` headless dev server.
 
 ## Apply changes
 
@@ -37,3 +37,16 @@ devel prune
 ```
 
 See `docs/task-workflow.md` for details.
+
+## Desktop rollback
+
+The `shadow` host is intentionally headless. If a local KDE/Sunshine workstation
+session is needed again, temporarily add this import back to
+`nix/hosts/shadow/configuration.nix`:
+
+```nix
+../../modules/desktop-kde.nix
+```
+
+Sunshine, printing, and Avahi are also intentionally absent from the headless
+service profile.

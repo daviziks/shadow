@@ -46,34 +46,12 @@
     };
   };
 
-  services.sunshine = {
-    enable = true;
-    autoStart = true;
-    openFirewall = false;
-    capSysAdmin = true;
-  };
-
   # User-facing services are reachable only through Tailscale.
-  # Sunshine default ports are documented by LizardByte as offsets from port 47989.
   networking.firewall.interfaces."tailscale0" = {
     allowedTCPPorts = [
       22
       80
       4788
-      47984
-      47989
-      47990
-      48010
-    ];
-    allowedUDPPorts = [
-      47998
-      47999
-      48000
-      48002
-      48010
     ];
   };
-
-  services.avahi.enable = true;
-  services.printing.enable = true;
 }
