@@ -14,6 +14,8 @@
     "d /home/daviziks/dev/.containers/storage 0700 daviziks users -"
     "d /home/daviziks/dev/.gateways 0755 daviziks users -"
     "d /home/daviziks/dev/.task-templates 0755 daviziks users -"
+    "d /home/daviziks/dev/.services 0755 daviziks users -"
+    "d /home/daviziks/dev/.services/executor 0700 daviziks users -"
   ];
 
   environment.variables = {

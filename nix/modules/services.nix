@@ -30,8 +30,20 @@
       auto_https off
     '';
     virtualHosts."http://shadow".extraConfig = ''
-      respond "shadow task gateway ready"
+      reverse_proxy 127.0.0.1:4788
     '';
+  };
+
+  virtualisation.oci-containers.backend = "podman";
+  virtualisation.oci-containers.containers.executor-selfhost = {
+    image = "ghcr.io/rhyssullivan/executor-selfhost:latest";
+    autoStart = true;
+    ports = [ "127.0.0.1:4788:4788" ];
+    volumes = [ "/home/daviziks/dev/.services/executor:/data" ];
+    environment = {
+      EXECUTOR_WEB_BASE_URL = "http://shadow";
+      EXECUTOR_ALLOW_LOCAL_NETWORK = "false";
+    };
   };
 
   services.sunshine = {
