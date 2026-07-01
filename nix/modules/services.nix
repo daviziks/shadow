@@ -30,10 +30,6 @@
       auto_https off
     '';
     virtualHosts."http://shadow".extraConfig = ''
-      redir /executor /executor/
-      handle_path /executor/* {
-        reverse_proxy 127.0.0.1:4788
-      }
       respond "shadow service gateway"
     '';
   };
@@ -42,10 +38,10 @@
   virtualisation.oci-containers.containers.executor-selfhost = {
     image = "ghcr.io/rhyssullivan/executor-selfhost:latest";
     autoStart = true;
-    ports = [ "127.0.0.1:4788:4788" ];
+    ports = [ "4788:4788" ];
     volumes = [ "/home/daviziks/dev/.services/executor:/data" ];
     environment = {
-      EXECUTOR_WEB_BASE_URL = "http://shadow/executor";
+      EXECUTOR_WEB_BASE_URL = "http://shadow:4788";
       EXECUTOR_ALLOW_LOCAL_NETWORK = "false";
     };
   };
@@ -63,6 +59,7 @@
     allowedTCPPorts = [
       22
       80
+      4788
       47984
       47989
       47990
