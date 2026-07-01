@@ -53,19 +53,18 @@ than a persistent corporate browser on Shadow.
 
 ### Phase 5: Agent workspace
 
-Install `agent-workspace-linux` under a dedicated user with a permission
-ceiling. Wire it to the executor only after the local doctor/start/browser
-checks work.
+Install `agent-workspace-linux` with a permission ceiling profile. Wire it to
+the executor only after the local doctor/start/browser checks work.
 
 ## Current baseline
 
 - `/home/daviziks/dev` is mounted from the dev-state SSD.
 - `/etc/nixos` is a Git repository and `nix flake check --no-build` passes.
 - `devel` already supports a repo store, task creation, task shells, and
-  task-local Podman/Docker wrappers.
+  task-local Podman/Docker wrappers, plus Coder workspace creation.
 - Tailscale, Caddy, Podman, SSH, and the executor service are already enabled.
-- KDE/Sunshine/printing/Avahi are still enabled and should move behind a
-  desktop profile or be removed for the headless target.
+- KDE/Sunshine/printing/Avahi and persistent browser containers are removed
+  from the headless profile.
 
 ## Non-goals for the first PRs
 

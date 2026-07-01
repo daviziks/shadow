@@ -6,6 +6,8 @@ CACHE_ROOT=${SHADOW_GIT_CACHE:-$DEV_ROOT/.cache/git}
 PKG_CACHE_ROOT=${SHADOW_PKG_CACHE:-$DEV_ROOT/.cache/pkg}
 STORE_FILE=${SHADOW_REPO_STORE:-$DEV_ROOT/.devel/repos.tsv}
 TASK_META=.devel
+PROFILE_ROOT=${SHADOW_SERVICE_PROFILE_ROOT:-/etc/shadow/service-profiles}
+CODER_TOKEN_FILE=${SHADOW_CODER_TOKEN_FILE:-$DEV_ROOT/.services/coder/admin-session-token}
 
 usage() {
   cat <<'USAGE'
@@ -14,6 +16,7 @@ Usage: devel <command> [args]
 Workflow:
   devel store add owner/repo [owner/repo...]
   devel create <task-slug>
+  devel coder create <workspace> [--profile profile] [owner/repo[@base][=work]...]
   cd $(devel path <task-slug>)
   devel enter <task-slug>
 
@@ -36,6 +39,10 @@ Commands:
       Delete every task and every task-local container state.
   cache update [owner/repo...]
       Refresh shared bare git caches. Defaults to all stored repos.
+  profile [list|show|copy] [profile] [task]
+      Inspect or copy service profile compose files.
+  coder create <workspace> [--profile profile] [owner/repo[@base][=work]...]
+      Create a Coder workspace from the fullstack-task template.
 
 Repo spec format:
   owner/repo              clone the repo default branch
@@ -408,6 +415,90 @@ cmd_cache() {
   esac
 }
 
+profile_path() {
+  profile=$1
+  case "$profile" in ''|.*|*/*|*[^A-Za-z0-9._-]*) fail "invalid profile: $profile" ;; esac
+  printf '%s/%s.compose.yaml\n' "$PROFILE_ROOT" "$profile"
+}
+
+cmd_profile() {
+  sub=${1:-list}
+  case "$sub" in
+    list|ls)
+      [ -d "$PROFILE_ROOT" ] || fail "service profile root not found: $PROFILE_ROOT"
+      find "$PROFILE_ROOT" -maxdepth 1 -type f -name '*.compose.yaml' -exec basename {} .compose.yaml \; | sort
+      ;;
+    show|cat)
+      shift
+      [ $# -eq 1 ] || fail "profile show requires a profile"
+      file=$(profile_path "$1")
+      [ -f "$file" ] || fail "unknown profile: $1"
+      cat "$file"
+      ;;
+    copy)
+      shift
+      [ $# -ge 1 ] || fail "profile copy requires a profile"
+      profile=$1; shift
+      task=${1:-${DEVEL_TASK:-}}
+      [ -n "$task" ] || fail "profile copy requires a task or DEVEL_TASK"
+      task_dir=$(ensure_task "$task")
+      file=$(profile_path "$profile")
+      [ -f "$file" ] || fail "unknown profile: $profile"
+      cp "$file" "$task_dir/compose.$profile.yaml"
+      printf '%s\n' "$task_dir/compose.$profile.yaml"
+      ;;
+    *) fail "unknown profile command: $sub" ;;
+  esac
+}
+
+coder_env() {
+  export CODER_URL=${CODER_URL:-http://127.0.0.1:7080}
+  if [ -z "${CODER_SESSION_TOKEN:-}" ] && [ -r "$CODER_TOKEN_FILE" ]; then
+    CODER_SESSION_TOKEN=$(cat "$CODER_TOKEN_FILE")
+    export CODER_SESSION_TOKEN
+  fi
+}
+
+cmd_coder() {
+  sub=${1:-}
+  case "$sub" in
+    create|new)
+      shift
+      [ $# -ge 1 ] || fail "coder create requires a workspace name"
+      workspace=$1; shift
+      profile=none
+      repos=
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --profile)
+            shift
+            [ $# -gt 0 ] || fail "--profile requires a value"
+            profile=$1
+            ;;
+          --profile=*) profile=${1#--profile=} ;;
+          *) repos="${repos}${repos:+ }$1" ;;
+        esac
+        shift
+      done
+      coder_env
+      need coder
+      exec coder create "$workspace" \
+        --template fullstack-task \
+        --parameter "repo_specs=$repos" \
+        --parameter "service_profile=$profile" \
+        --yes
+      ;;
+    open|url)
+      shift
+      coder_env
+      need coder
+      [ $# -eq 1 ] || fail "coder open requires a workspace name"
+      coder show "$1" | sed -n '1,120p'
+      ;;
+    *) fail "unknown coder command: ${sub:-}" ;;
+  esac
+}
+
 cmd=${1:-}
 case "$cmd" in
   store) shift; cmd_store "$@" ;;
@@ -419,6 +510,8 @@ case "$cmd" in
   destroy|rm|delete) shift; cmd_destroy "$@" ;;
   prune) shift; [ $# -eq 0 ] || fail "prune takes no args"; cmd_prune ;;
   cache) shift; cmd_cache "$@" ;;
+  profile|profiles) shift; cmd_profile "$@" ;;
+  coder) shift; cmd_coder "$@" ;;
   __podman|__docker) shift; cmd_podman "$@" ;;
   -h|--help|help|'') usage ;;
   *) usage >&2; exit 2 ;;
