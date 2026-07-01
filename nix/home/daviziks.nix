@@ -20,7 +20,6 @@
     shellAliases = {
       ll = "eza -lah --git";
       gs = "git status --short";
-      dev = "cd /home/daviziks/dev";
     };
   };
 

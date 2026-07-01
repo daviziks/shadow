@@ -50,17 +50,6 @@
         ];
       };
 
-      nixosConfigurations.shadow-vm = nixpkgs.lib.nixosSystem {
-        inherit system specialArgs;
-        modules = [
-          ./nix/hosts/shadow-vm/configuration.nix
-          home-manager.nixosModules.home-manager
-          ./nix/hosts/shadow/home-manager.nix
-        ];
-      };
-
-      packages.${system}.shadow-vm = self.nixosConfigurations.shadow-vm.config.system.build.vm;
-
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
           git

@@ -8,13 +8,11 @@
 {
   imports = [
     ../../modules/base.nix
-    ../../modules/backup-storage.nix
     ../../modules/agent-workspace-linux.nix
     ../../modules/codex.nix
     ../../modules/devtools.nix
     ../../modules/herdr.nix
     ../../modules/services.nix
-    ../../modules/shadow-ws.nix
     ../../modules/task-workspace.nix
   ];
 

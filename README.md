@@ -9,72 +9,27 @@ cd /etc/nixos
 sudo nixos-rebuild switch --flake .#shadow
 ```
 
-## Dev workflow
+## Remote workflow
 
-Use `shadow-ws` for isolated task workspaces that Codex App can reach over SSH.
+Shadow is a headless NixOS dev server reached over SSH/Tailscale. The host keeps
+Codex, common development tools, Podman, and Herdr available system-wide.
 
-Create a container workspace:
+`/home/daviziks/dev` is reserved for local development state, package caches,
+and container storage. Task/workspace orchestration is intentionally no longer
+declared in this repo.
 
-```sh
-shadow-ws create fixing-mfe-auth-issue \
-  --repo sigla/sigla-web@develop=fixing-mfe-auth-issue \
-  --repo sigla/sigla-api@main=fixing-mfe-auth-issue \
-  --profile sqlserver-minio-centrifugo
-```
-
-The command prints a concrete SSH alias. Add it to your Windows
-`~/.ssh/config`, then add that alias as an SSH host in Codex App and select
-`/workspace`.
-
-When you are away from the PC, connect with SSH/Herdr:
+Connect directly when away from the PC:
 
 ```sh
-ssh shadow-fixing-mfe-auth-issue
+ssh shadow
 herdr
 ```
-
-`devel` remains available for host-side task folders while `shadow-ws` becomes
-the main Codex App workflow.
-
-Add repos once:
-
-```sh
-devel store add sigla/sigla-web sigla/sigla-api
-```
-
-Create a task by selecting stored repos with `fzf`:
-
-```sh
-devel create fixing-mfe-auth-issue
-cd $(devel path fixing-mfe-auth-issue)
-devel enter fixing-mfe-auth-issue
-```
-
-Inside the task shell, normal `podman`/`docker` commands use task-local storage and networking. Host port publishing is blocked so parallel tasks do not collide.
-
-Service profiles are available from `/etc/shadow-dev/service-profiles`:
-
-```sh
-devel profile list
-```
-
-Cleanup:
-
-```sh
-devel destroy fixing-mfe-auth-issue
-devel prune
-```
-
-See `docs/task-workflow.md` for details.
 
 ## Codex SSH host
 
 Codex CLI is installed system-wide as `codex`. To use Shadow from the Codex app,
 make sure this SSH host is in your local `~/.ssh/config`, then run
 `codex login` once as `daviziks` on Shadow.
-
-The primary remote workflow is moving to per-task SSH workspace containers, so
-each Codex App chat can target a concrete isolated host alias.
 
 ## Headless profile
 
