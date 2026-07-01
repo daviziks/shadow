@@ -50,6 +50,12 @@ devel prune
 
 See `docs/task-workflow.md` for details.
 
+## Codex SSH host
+
+Codex CLI is installed system-wide as `codex`. To use Shadow from the Codex app,
+make sure this SSH host is in your local `~/.ssh/config`, then run
+`codex login` once as `daviziks` on Shadow.
+
 ## Headless profile
 
 The `shadow` host is intentionally headless. KDE, Sunshine, local GUI apps,
