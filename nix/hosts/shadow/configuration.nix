@@ -8,6 +8,7 @@
 {
   imports = [
     ../../modules/base.nix
+    ../../modules/backup-storage.nix
     ../../modules/devtools.nix
     ../../modules/services.nix
     ../../modules/task-workspace.nix
