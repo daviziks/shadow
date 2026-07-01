@@ -6,8 +6,8 @@ task-first development server.
 ## Target stack
 
 - NixOS owns the base system, disks, services, firewall, and rollback path.
-- Coder owns long-lived development workspaces and VS Code/SSH entrypoints.
-- `devel` remains the human-facing task CLI and can wrap Coder over time.
+- Per-task SSH containers own long-lived development workspaces and Codex App entrypoints.
+- `devel` remains the human-facing task CLI until `shadow-ws` replaces it.
 - Herdr owns persistent terminal sessions and agent panes over SSH.
 - `agent-workspace-linux` owns isolated GUI/browser automation for AI agents.
 - Podman/Docker Compose service profiles own per-task dependencies.
@@ -17,13 +17,12 @@ task-first development server.
 
 1. #1 Headless baseline for Shadow
 2. #2 Mount and use backup HDD
-3. #3 Install and expose Coder for dev workspaces
-4. #4 Create fullstack Coder workspace template
-5. #5 DevL/devel v2 task CLI
-6. #7 Per-task debug browser and app routing
-7. Herdr terminal/session multiplexer
-8. #8 Agent workspace Linux integration
-9. #9 Service profile library for task dependencies
+3. #5 DevL/devel v2 task CLI
+4. #7 Per-task debug browser and app routing
+5. Herdr terminal/session multiplexer
+6. #8 Agent workspace Linux integration
+7. #9 Service profile library for task dependencies
+8. Per-task SSH workspace containers for Codex App
 
 ## Delivery phases
 
@@ -35,8 +34,8 @@ before adding new orchestration services.
 
 ### Phase 2: Workspace control plane
 
-Add Coder and the first fullstack workspace template. The first version should
-prove repo selection, branch selection, VS Code Desktop access, and a basic
+Add per-task SSH workspace containers. The first version should prove repo
+selection, branch selection, Codex App SSH access, Herdr access, and a basic
 Node/Bun/Go/Playwright toolchain.
 
 ### Phase 3: Human workflow
@@ -61,14 +60,14 @@ the executor only after the local doctor/start/browser checks work.
 - `/home/daviziks/dev` is mounted from the dev-state SSD.
 - `/etc/nixos` is a Git repository and `nix flake check --no-build` passes.
 - `devel` already supports a repo store, task creation, task shells, and
-  task-local Podman/Docker wrappers, plus Coder workspace creation.
+  task-local Podman/Docker wrappers.
 - Tailscale, Caddy, Podman, SSH, and the executor service are already enabled.
 - KDE/Sunshine/printing/Avahi and persistent browser containers are removed
   from the headless profile.
 
 ## Non-goals for the first PRs
 
-- Do not replace `devel` with Coder in one step.
+- Do not introduce a heavyweight workspace control plane before the SSH-container workflow proves itself.
 - Do not expose any new service outside Tailscale.
 - Do not store corporate browser credentials on Shadow.
 - Do not give AI agent workspaces broad host mounts by default.

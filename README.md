@@ -29,12 +29,6 @@ devel enter fixing-mfe-auth-issue
 
 Inside the task shell, normal `podman`/`docker` commands use task-local storage and networking. Host port publishing is blocked so parallel tasks do not collide.
 
-Create a Coder workspace for remote VS Code workflows:
-
-```sh
-devel coder create fixing-mfe-auth-issue --profile sqlserver-minio-centrifugo sigla/sigla-web@develop=fix-auth
-```
-
 Service profiles are available from `/etc/shadow-dev/service-profiles`:
 
 ```sh
@@ -55,6 +49,9 @@ See `docs/task-workflow.md` for details.
 Codex CLI is installed system-wide as `codex`. To use Shadow from the Codex app,
 make sure this SSH host is in your local `~/.ssh/config`, then run
 `codex login` once as `daviziks` on Shadow.
+
+The primary remote workflow is moving to per-task SSH workspace containers, so
+each Codex App chat can target a concrete isolated host alias.
 
 ## Headless profile
 

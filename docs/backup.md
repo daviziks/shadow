@@ -28,5 +28,5 @@ The first backup set includes:
 You can also pass a target directory explicitly:
 
 ```sh
-shadow-backup /srv/backup/shadow/manual/pre-coder
+shadow-backup /srv/backup/shadow/manual/pre-workspace
 ```
