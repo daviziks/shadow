@@ -11,7 +11,30 @@ sudo nixos-rebuild switch --flake .#shadow
 
 ## Dev workflow
 
-Use `devel` for task-first development environments.
+Use `shadow-ws` for isolated task workspaces that Codex App can reach over SSH.
+
+Create a container workspace:
+
+```sh
+shadow-ws create fixing-mfe-auth-issue \
+  --repo sigla/sigla-web@develop=fixing-mfe-auth-issue \
+  --repo sigla/sigla-api@main=fixing-mfe-auth-issue \
+  --profile sqlserver-minio-centrifugo
+```
+
+The command prints a concrete SSH alias. Add it to your Windows
+`~/.ssh/config`, then add that alias as an SSH host in Codex App and select
+`/workspace`.
+
+When you are away from the PC, connect with SSH/Herdr:
+
+```sh
+ssh shadow-fixing-mfe-auth-issue
+herdr
+```
+
+`devel` remains available for host-side task folders while `shadow-ws` becomes
+the main Codex App workflow.
 
 Add repos once:
 

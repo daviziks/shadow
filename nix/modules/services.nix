@@ -42,7 +42,7 @@
     volumes = [ "/home/daviziks/dev/.services/executor:/data" ];
     environment = {
       EXECUTOR_WEB_BASE_URL = "http://shadow:4788";
-      EXECUTOR_ALLOW_LOCAL_NETWORK = "false";
+      EXECUTOR_ALLOW_LOCAL_NETWORK = "true";
     };
   };
 
