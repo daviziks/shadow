@@ -24,7 +24,14 @@
   time.timeZone = "America/Cayenne";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  networking.networkmanager.enable = true;
+  networking.networkmanager = {
+    enable = true;
+    settings.connectivity = {
+      uri = "http://nmcheck.gnome.org/check_network_status.txt";
+      response = "NetworkManager is online";
+      interval = 300;
+    };
+  };
   networking.firewall.enable = true;
 
   services.resolved.enable = true;
@@ -62,7 +69,7 @@
   security.sudo.wheelNeedsPassword = false;
 
   environment.systemPackages = with pkgs; [
-    vim
+    nano
     git
     curl
     wget

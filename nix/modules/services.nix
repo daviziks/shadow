@@ -8,6 +8,7 @@
 {
   services.tailscale = {
     enable = true;
+    package = unstable.tailscale;
     useRoutingFeatures = "client";
   };
 
@@ -35,7 +36,7 @@
 
   services.sunshine = {
     enable = true;
-    autoStart = false;
+    autoStart = true;
     openFirewall = false;
     capSysAdmin = true;
   };

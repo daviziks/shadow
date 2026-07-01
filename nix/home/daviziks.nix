@@ -45,7 +45,12 @@
 
   xdg.configFile."kwalletrc".text = ''
     [Wallet]
-    Enabled=false
+    Enabled=true
+    First Use=false
+    Default Wallet=kdewallet
+
+    [org.freedesktop.secrets]
+    apiEnabled=true
   '';
 
   home.packages = [

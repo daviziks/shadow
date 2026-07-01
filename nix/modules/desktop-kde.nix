@@ -7,6 +7,7 @@
 }:
 {
   services.xserver.enable = true;
+  services.xserver.excludePackages = [ pkgs.xterm ];
   services.displayManager.sddm.enable = true;
   services.displayManager.autoLogin = {
     enable = true;
@@ -15,7 +16,7 @@
   services.desktopManager.plasma6.enable = true;
 
   # Remote usability matters more than at-rest local secrecy on this machine.
-  security.pam.services.kwallet.enableKwallet = false;
+  security.pam.services.kwallet.enableKwallet = true;
 
   xdg.portal.enable = true;
   xdg.portal.extraPortals = [ pkgs.kdePackages.xdg-desktop-portal-kde ];

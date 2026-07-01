@@ -22,4 +22,8 @@
     npm_config_cache = "/home/daviziks/dev/.cache/pkg/npm";
     COREPACK_HOME = "/home/daviziks/dev/.cache/pkg/corepack";
   };
+
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "shadow-task" (builtins.readFile ../../scripts/shadow-task))
+  ];
 }
