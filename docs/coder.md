@@ -17,7 +17,13 @@ The port is open only through the `tailscale0` firewall interface.
 Persistent service data lives under:
 
 ```text
-/home/daviziks/dev/.services/coder
+/var/lib/coder
+```
+
+Template sources live under:
+
+```text
+/home/daviziks/dev/.services/coder/templates
 ```
 
 PostgreSQL is managed locally by the NixOS `services.coder` module.
